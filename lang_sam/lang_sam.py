@@ -80,7 +80,7 @@ class LangSAM():
         ckpt_config_filename = "GroundingDINO_SwinB.cfg.py"
         self.groundingdino = load_model_hf(ckpt_repo_id, ckpt_filenmae, ckpt_config_filename)
 
-    @print_duration()
+    @print_duration("predict_dino")
     def predict_dino(self, image_pil, text_prompt, box_threshold, text_threshold):
         image_trans = transform_image(image_pil)
         boxes, logits, phrases = predict(model=self.groundingdino,
@@ -94,7 +94,7 @@ class LangSAM():
 
         return boxes, logits, phrases
 
-    @print_duration()
+    @print_duration("predict_sam")
     def predict_sam(self, image_pil, boxes):
         image_array = np.asarray(image_pil)
         self.sam.set_image(image_array)
@@ -107,7 +107,7 @@ class LangSAM():
         )
         return masks.cpu()
 
-    @print_duration()
+    @print_duration("predict")
     def predict(self, image_pil, text_prompt, box_threshold=0.3, text_threshold=0.25):
         boxes, logits, phrases = self.predict_dino(image_pil, text_prompt, box_threshold, text_threshold)
         masks = torch.tensor([])
