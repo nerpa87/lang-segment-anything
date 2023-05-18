@@ -12,6 +12,8 @@ from huggingface_hub import hf_hub_download
 from segment_anything import sam_model_registry
 from segment_anything import SamPredictor
 
+from pelper import print_duration
+
 SAM_MODELS = {
     "vit_h": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth",
     "vit_l": "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth",
@@ -37,8 +39,12 @@ def load_model_hf(repo_id, filename, ckpt_config_filename, device='cpu'):
 
 
 def transform_image(image) -> torch.Tensor:
+    no_dino_resize = bool(int(os.getenv("NO_DINO_RESIZE", "0")))
     transform = T.Compose([
         T.RandomResize([800], max_size=1333),
+        T.ToTensor(),
+        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+    ]) if not no_dino_resize else T.Compose([
         T.ToTensor(),
         T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
@@ -74,6 +80,7 @@ class LangSAM():
         ckpt_config_filename = "GroundingDINO_SwinB.cfg.py"
         self.groundingdino = load_model_hf(ckpt_repo_id, ckpt_filenmae, ckpt_config_filename)
 
+    @print_duration()
     def predict_dino(self, image_pil, text_prompt, box_threshold, text_threshold):
         image_trans = transform_image(image_pil)
         boxes, logits, phrases = predict(model=self.groundingdino,
@@ -87,6 +94,7 @@ class LangSAM():
 
         return boxes, logits, phrases
 
+    @print_duration()
     def predict_sam(self, image_pil, boxes):
         image_array = np.asarray(image_pil)
         self.sam.set_image(image_array)
@@ -99,6 +107,7 @@ class LangSAM():
         )
         return masks.cpu()
 
+    @print_duration()
     def predict(self, image_pil, text_prompt, box_threshold=0.3, text_threshold=0.25):
         boxes, logits, phrases = self.predict_dino(image_pil, text_prompt, box_threshold, text_threshold)
         masks = torch.tensor([])
