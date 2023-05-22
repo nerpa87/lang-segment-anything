@@ -53,13 +53,13 @@ def transform_image(image) -> torch.Tensor:
     return image_transformed
 
 
-def filter_by_constraints(boxes, logits, phrases, area_constraints, phrases_constrains, W, H):
+def filter_by_constraints(boxes, logits, phrases, area_constraints, phrases_constraints, W, H):
     idxs = []
     for i, box in enumerate(boxes):
         phrase = phrases[i]
-        if phrases_constrains is not None:
-            if phrase not in phrases_constrains:
-                print(f"Skipping box: phrase {phrase} it not in {phrases_constrains}")
+        if phrases_constraints is not None:
+            if phrase not in phrases_constraints:
+                print(f"Skipping box: phrase {phrase} it not in {phrases_constraints}")
                 continue
         if area_constraints is not None:
             x1,y1,x2,y2 = box.tolist()
@@ -134,13 +134,13 @@ class LangSAM():
         return masks.cpu()
 
     @print_duration("predict")
-    def predict(self, image_pil, text_prompt, box_threshold=0.3, text_threshold=0.25, area_constraints=None, phrases_constrains=None):
+    def predict(self, image_pil, text_prompt, box_threshold=0.3, text_threshold=0.25, area_constraints=None, phrases_constraints=None):
         boxes, logits, phrases = self.predict_dino(image_pil, text_prompt, box_threshold, text_threshold)
         masks = torch.tensor([])
 
-        if area_constraints is not None or phrases_constrains is not None:
+        if area_constraints is not None or phrases_constraints is not None:
             W, H = image_pil.size
-            boxes, logits, phrases = filter_by_constraints(boxes, logits, phrases, area_constraints, phrases_constrains, W, H)
+            boxes, logits, phrases = filter_by_constraints(boxes, logits, phrases, area_constraints, phrases_constraints, W, H)
 
         if len(boxes) > 0:
             masks = self.predict_sam(image_pil, boxes)
