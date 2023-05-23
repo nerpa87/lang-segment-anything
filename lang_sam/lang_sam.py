@@ -73,9 +73,9 @@ def filter_by_constraints(boxes, logits, phrases, area_constraints, phrases_cons
                 continue
         idxs.append(i)
     return [
-        [boxes[i] for i in idxs],
-        [logits[i] for i in idxs],
-        [phrases[i] for i in idxs],
+        torch.Tensor([boxes[i].tolist() for i in idxs]),
+        torch.Tensor([logits[i].tolist() for i in idxs]),
+        [phrases[i] for i in idxs]
     ]
             
 
