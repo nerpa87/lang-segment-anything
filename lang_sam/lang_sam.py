@@ -127,13 +127,28 @@ class LangSAM():
         image_array = np.asarray(image_pil)
         self.sam.set_image(image_array)
         transformed_boxes = self.sam.transform.apply_boxes_torch(boxes, image_array.shape[:2])
-        masks, _, masks_logits = self.sam.predict_torch(
-            point_coords=None,
-            point_labels=None,
-            boxes=transformed_boxes.to(self.sam.device),
-            mask_input=None if not self.use_sam_masks_logits else self.sam_masks_logits,
-            multimask_output=False,
-        )
+        try:
+            masks, _, masks_logits = self.sam.predict_torch(
+                point_coords=None,
+                point_labels=None,
+                boxes=transformed_boxes.to(self.sam.device),
+                mask_input=None if not self.use_sam_masks_logits else self.sam_masks_logits,
+                multimask_output=False,
+            )
+        except Exception as ex:
+            if self.use_sam_masks_logits and self.sam_masks_logits is not None:
+                print('failed to predict sam, will retry with None masks_logits')
+                self.sam_masks_logits = None
+                masks, _, masks_logits = self.sam.predict_torch(
+                    point_coords=None,
+                    point_labels=None,
+                    boxes=transformed_boxes.to(self.sam.device),
+                    mask_input=None if not self.use_sam_masks_logits else self.sam_masks_logits,
+                    multimask_output=False,
+                )
+            else:
+                raise ex
+
         self.sam_masks_logits = masks_logits
         return masks.cpu()
 
