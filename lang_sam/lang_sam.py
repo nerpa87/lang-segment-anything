@@ -131,7 +131,7 @@ class LangSAM():
             point_coords=None,
             point_labels=None,
             boxes=transformed_boxes.to(self.sam.device),
-            mask_input=None if not self.use_sam_masks_logits else self.sam_masks_logits
+            mask_input=None if not self.use_sam_masks_logits else self.sam_masks_logits,
             multimask_output=False,
         )
         self.sam_masks_logits = masks_logits
