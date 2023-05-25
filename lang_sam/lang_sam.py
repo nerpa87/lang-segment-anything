@@ -81,11 +81,13 @@ def filter_by_constraints(boxes, logits, phrases, area_constraints, phrases_cons
 
 class LangSAM():
 
-    def __init__(self, sam_type="vit_h"):
+    def __init__(self, sam_type="vit_h", use_sam_masks_logits = False):
         self.sam_type = sam_type
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.build_groundingdino()
         self.build_sam(sam_type)
+        self.sam_masks_logits = None
+        self.use_sam_masks_logits = use_sam_masks_logits
 
     def build_sam(self, sam_type):
         checkpoint_url = SAM_MODELS[sam_type]
@@ -125,12 +127,14 @@ class LangSAM():
         image_array = np.asarray(image_pil)
         self.sam.set_image(image_array)
         transformed_boxes = self.sam.transform.apply_boxes_torch(boxes, image_array.shape[:2])
-        masks, _, _ = self.sam.predict_torch(
+        masks, _, masks_logits = self.sam.predict_torch(
             point_coords=None,
             point_labels=None,
             boxes=transformed_boxes.to(self.sam.device),
+            mask_input=None if not self.use_sam_masks_logits else self.sam_masks_logits
             multimask_output=False,
         )
+        self.sam_masks_logits = masks_logits
         return masks.cpu()
 
     @print_duration("predict")
