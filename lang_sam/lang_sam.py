@@ -1,5 +1,5 @@
 import os
-
+import re
 import groundingdino.datasets.transforms as T
 import numpy as np
 import torch
@@ -77,7 +77,14 @@ def filter_by_constraints(boxes, logits, phrases, area_constraints, phrases_cons
         torch.Tensor([logits[i].tolist() for i in idxs]),
         [phrases[i] for i in idxs]
     ]
-            
+
+def cleanup_phrases(phrases): # [CLS] traffic light utility pole [SEP]
+    out = []
+    for phrase in phrases:
+        phrase = re.sub("\[[A-Z]+\]", "", phrase)
+        phrase = phrase.strip()
+        out.append(phrase)
+    return out
 
 class LangSAM():
 
@@ -155,6 +162,7 @@ class LangSAM():
     @print_duration("predict")
     def predict(self, image_pil, text_prompt, box_threshold=0.3, text_threshold=0.25, area_constraints=None, phrases_constraints=None):
         boxes, logits, phrases = self.predict_dino(image_pil, text_prompt, box_threshold, text_threshold)
+        phrases = cleanup_phrases(phrases) # [CLS] traffic light utility pole [SEP]
         masks = torch.tensor([])
 
         if area_constraints is not None or phrases_constraints is not None:
